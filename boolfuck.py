@@ -36,13 +36,8 @@ class increment_data(Command):
 class add(Command):
     def execute(self):
         if not self.input:
-            self.data[self.data_ptr] = 0
             return
-        data = [int(x) for x in list('{0:0b}'.format(ord(self.input[0])))]
-        for i in data[::-1]:
-            self.data[self.data_ptr] = int(i)
-            self.data_ptr += 1
-        self.data_ptr -= 1
+        self.data[self.data_ptr] = int(self.input[0])
         self.input = self.input[1:]
 
 class output(Command):
@@ -51,26 +46,23 @@ class output(Command):
 
 class if_cmd(Command):
     def execute(self):
-        print("if", self.ptr, self.data_ptr, self.data[self.data_ptr])
-        if self.data[self.data_ptr]:
+        if self.data[self.data_ptr] != 0:
             return
         d = 0
         self.ptr += 1
         while True:
             if(self.code[self.ptr] == "["):
                 d += 1
-            if(self.code[self.ptr] == "]"):
+            elif(self.code[self.ptr] == "]"):
                 if not d:
                     break
                 else:
                     d -= 1
             self.ptr += 1
+        self.ptr += 1
 
 class while_cmd(Command):
     def execute(self):
-        print("while", self.ptr, self.data_ptr, self.data[self.data_ptr])
-        if not self.data[self.data_ptr]:
-            return
         d = 0
         self.ptr -= 1
         while True:
@@ -82,6 +74,7 @@ class while_cmd(Command):
                 else:
                     d -= 1
             self.ptr -= 1
+        self.ptr -= 1
 
 def interpret(cmd):
     try:
@@ -99,8 +92,7 @@ def interpret(cmd):
 
 def print_stream(output):
     result = ""
-    diff = len(output) % 8
-    for i in range(diff):
+    for i in range(8 - len(output) % 8):
         output.append(0)
     for i, n in enumerate(output[::-8]):
         sum = 0
@@ -108,7 +100,6 @@ def print_stream(output):
             if bit:
                 sum += pow(2, j)
         result += chr(sum)
-    print (result)
     return result
 
 def boolfuck(code, input=""):
@@ -116,6 +107,14 @@ def boolfuck(code, input=""):
     data_ptr = 0
     data = {}
     output = []
+    if input:
+        in_stream = []
+        for chr in input:
+            bits = [int(x) for x in list('{0:0b}'.format(ord(chr)))]
+            for i in range(8 - len(bits) % 8):
+                bits = [0] + bits
+            in_stream += bits[::-1]
+        input = in_stream
     while ptr < len(code):
         command = interpret(code[ptr])
         (ptr, data_ptr, data, output, input) = command(ptr, data_ptr, data, output, input, code) 
@@ -124,9 +123,27 @@ def boolfuck(code, input=""):
 
 def test():
     print(boolfuck(";;;+;+;;+;+;+;+;+;+;;+;;+;;;+;;+;+;;+;;;+;;+;+;;+;+;;;;+;+;;+;;;+;;+;+;+;;;;;;;+;+;;+;;;+;+;;;+;+;;;;+;+;;+;;+;+;;+;;;+;;;+;;+;+;;+;;;+;+;;+;;+;+;+;;;;+;+;;;+;+;+;", "") == "Hello, world!\n")
-    print(boolfuck(";asd;;asd+asf;adf+sda;fsd;gd+ghdg;hg+df;+;+;+;+;;+;;+;;;+;;+;+;;+;;;+;;+;+;;+;+;;;;+;+;;+;;;+;;+;+;+;;;;;;;+;+;;+;;;+;+;;;+;+;;;;+;+;;+;;+;+;;+;;;+;;;+;;+;+;;+;;;+;+;;+;;+;+;+;;;;+;+;;;+;+;+;", "") == "Hello, world!\n")
-    print(boolfuck(">,>,>,>,>,>,>,>,<<<<<<<[>]+<[+<]>>>>>>>>>[+]+<<<<<<<<+[>+]<[<]>>>>>>>>>[+<<<<<<<<[>]+<[+<]>>>>>>>>>+<<<<<<<<+[>+]<[<]>>>>>>>>>[+]<<<<<<<<;>;>;>;>;>;>;>;<<<<<<<,>,>,>,>,>,>,>,<<<<<<<[>]+<[+<]>>>>>>>>>[+]+<<<<<<<<+[>+]<[<]>>>>>>>>>]<[+<]", "Codewars\u00ff") == "Codewars")
-    print(boolfuck(">,>,>,>,>,>,>,>,>+<<<<<<<<+[>+]<[<]>>>>>>>>>[+<<<<<<<<[>]+<[+<]>;>;>;>;>;>;>;>;>+<<<<<<<<+[>+]<[<]>>>>>>>>>[+<<<<<<<<[>]+<[+<]>>>>>>>>>+<<<<<<<<+[>+]<[<]>>>>>>>>>[+]+<<<<<<<<+[>+]<[<]>>>>>>>>>]<[+<]>,>,>,>,>,>,>,>,>+<<<<<<<<+[>+]<[<]>>>>>>>>>]<[+<]", "Codewars") == "Codewars")
+    print(boolfuck(";asd;;asd+asf;adf+sda;fsd;gd+ghdg;hg+df;+\
+        ;+;+;+;;+;;+;;;+;;+;+;;+;;;+;;+;+;;+;+;;;;+;+;;+;;;+;;+;+;+;;;;;;;+;+;;+;\
+        ;;+;+;;;+;+;;;;+;+;;+;;+;+;;+;;;+;;;+;;+;+;;+;;;+;+;;+;;+;+;+;;;;+;+;;;+;+;+;", "")\
+         == "Hello, world!\n")
+    print(boolfuck(">,>,>,>,>,>,>,>,<<<<<<<[>]+<[+<]>>>>>>>>>[+]+<<<<<<<<+[>+]<[<]>>>>>>>>>\
+        [+<<<<<<<<[>]+<[+<]>>>>>>>>>+<<<<<<<<+[>+]<[<]>>>>>>>>>[+]<<<<<<<<;>;>;>;>;>;>;>;<<\
+        <<<<<,>,>,>,>,>,>,>,<<<<<<<[>]+<[+<]>>>>>>>>>[+]+<<<<<<<<+[>+]<[<]>>>>>>>>>]<[+<]",\
+         "Codewars\u00ff") == "Codewars")
+    print(boolfuck(">,>,>,>,>,>,>,>,>+<<<<<<<<+[>+]<[<]>>>>>>>>>[+<<<<<<<<[>]+<[+<]>;>;>;>;>;>;>;>\
+        ;>+<<<<<<<<+[>+]<[<]>>>>>>>>>[+<<<<<<<<[>]+<[+<]>>>>>>>>>+<<<<<<<<+[>+]<[<]>>>>>>>>>[+]+<<\
+        <<<<<<+[>+]<[<]>>>>>>>>>]<[+<]>,>,>,>,>,>,>,>,>+<<<<<<<<+[>+]<[<]>>>>>>>>>]<[+<]",\
+         "Codewars") == "Codewars")
+    print(boolfuck(">,>,>,>,>,>,>,>,>>,>,>,>,>,>,>,>,<<<<<<<<+<<<<<<<<+[>+]<[<]>>>>>>>>>[\
+        +<<<<<<<<[>]+<[+<]>>>>>>>>>>>>>>>>>>+<<<<<<<<+[>+]<[<]>>>>>>>>>[+<<<<<<<<[>]+<[+<]\
+        >>>>>>>>>+<<<<<<<<+[>+]<[<]>>>>>>>>>[+]>[>]+<[+<]>>>>>>>>>[+]>[>]+<[+<]>>>>>>>>>\
+        [+]<<<<<<<<<<<<<<<<<<+<<<<<<<<+[>+]<[<]>>>>>>>>>]<[+<]>>>>>>>>>>>>>>>>>>>>>>>>>>>+<<<<<<<<+[\
+        >+]<[<]>>>>>>>>>[+<<<<<<<<[>]+<[+<]>>>>>>>>>+<<<<<<<<+[>+]<[<]>>>>>>>>>[+]\
+        <<<<<<<<<<<<<<<<<<<<<<<<<<[>]+<[+<]>>>>>>>>>[+]>>>>>>>>>>>>>>>>>>+<<<<<<<<+[>+]<\
+        [<]>>>>>>>>>]<[+<]<<<<<<<<<<<<<<<<<<+<<<<<<<<+[>+]<[<]>>>>>>>>>[+]+<<<<<<<<+[>+]<[<]>>>>>>>>>]\
+        <[+<]>>>>>>>>>>>>>>>>>>>;>;>;>;>;>;>;>;<<<<<<<<", \
+        "\u0008\u0009") == "\u0048")
 
 if __name__ == '__main__':
     test()
