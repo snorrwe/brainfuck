@@ -50,7 +50,7 @@ class Interpreter {
     }
 
     add() {
-        this.data[this.data_ptr] = this.instream[0] && this.instream[0].charCodeAt(0) || 0;
+        this.data[this.data_ptr] = (this.instream[0] && this.instream[0].charCodeAt(0)) || 0;
         this.instream = this.instream.substr(1);
     }
 
@@ -60,7 +60,7 @@ class Interpreter {
         for (let d = 0; d || this.code[this.code_ptr] != "]"; this.code_ptr++) {
             if (this.code[this.code_ptr] == "[") {
                 d++;
-            } else if (d) {
+            } else if (this.code[this.code_ptr] == "]") {
                 d--;
             }
         }
@@ -72,7 +72,7 @@ class Interpreter {
         for (let d = 0; d || this.code[this.code_ptr] != "["; this.code_ptr--) {
             if (this.code[this.code_ptr] == "]") {
                 d++;
-            } else if (d) {
+            } else if (this.code[this.code_ptr] == "[") {
                 d--;
             }
         }
